@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"knapsack/model"
 	"log"
+	"math"
 	"math/rand/v2"
 	"os"
 	"sort"
@@ -44,6 +45,46 @@ func NewStrategy(ts []model.Treasure) *Strategy {
 	return &strategy
 }
 
+func (s *Scenario) Load() {
+	// knapsack_data.csv を読み込む
+	f, err := os.Open("knapsack_data.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	rows, err := r.ReadAll() // csvを一度に全て読み込む
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var totalvalue float64
+	// [][]stringなのでループする
+	for i, v := range rows {
+		// ヘッダ行はスキップ
+		if i == 0 {
+			continue
+		}
+		// index, value, weight
+		index, _ := strconv.Atoi(v[0])
+		value, _ := strconv.Atoi(v[1])
+		weight, _ := strconv.Atoi(v[2])
+		treasure := model.Treasure{
+			Index:  index,
+			Value:  float64(value),
+			Weight: float64(weight),
+		}
+		totalvalue += treasure.Value
+		s.Treasures = append(s.Treasures, treasure)
+	}
+
+	// 動的に weightlimit を定義して、良い問題にする
+	const weightlimitRatio = 0.4
+	s.WeightLimit = math.Ceil(totalvalue * weightlimitRatio)
+	fmt.Printf("Set weight_limit=%f\n", s.WeightLimit)
+}
+
 func (s *Scenario) greedy() {
 	treasures := make([]model.Treasure, len(s.Treasures))
 	copy(treasures, s.Treasures)
@@ -64,39 +105,6 @@ func (s *Scenario) greedy() {
 		}
 	}
 	fmt.Printf("greedy: score=%f\n", strategy.Score)
-}
-
-func (s *Scenario) Load() {
-	// knapsack_data.csv を読み込む
-	f, err := os.Open("knapsack_data.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	r := csv.NewReader(f)
-	rows, err := r.ReadAll() // csvを一度に全て読み込む
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// [][]stringなのでループする
-	for i, v := range rows {
-		// ヘッダ行はスキップ
-		if i == 0 {
-			continue
-		}
-		// index, value, weight
-		index, _ := strconv.Atoi(v[0])
-		value, _ := strconv.Atoi(v[1])
-		weight, _ := strconv.Atoi(v[2])
-		treasure := model.Treasure{
-			Index:  index,
-			Value:  float64(value),
-			Weight: float64(weight),
-		}
-		s.Treasures = append(s.Treasures, treasure)
-	}
 }
 
 // roulette 選択して、親を選択
