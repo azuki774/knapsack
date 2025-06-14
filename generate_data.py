@@ -2,7 +2,7 @@ import random
 import csv
 
 # 生成するアイテムの数
-NUM_ITEMS = 1000
+NUM_ITEMS = 10
 
 # 価値(value)のランダム範囲
 MIN_VALUE = 10
