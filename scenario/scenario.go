@@ -63,7 +63,7 @@ func (s *Scenario) greedy() {
 			strategy.Score += treasure.Value
 		}
 	}
-	fmt.Println(strategy)
+	fmt.Printf("greedy: score=%f\n", strategy.Score)
 }
 
 func (s *Scenario) Load() {
@@ -158,8 +158,6 @@ func (s *Scenario) GA() {
 			b := rand.N(2) // 0 or 1
 			if b == 1 {
 				ns.ChooseIndex[j] = true
-				ns.SumValue += s.Treasures[j].Value
-				ns.SumWeight += s.Treasures[j].Weight
 				// Score は計算しない
 			}
 		}
@@ -169,52 +167,69 @@ func (s *Scenario) GA() {
 		})
 	}
 
-	// 評価(score)を計算
-	var totalScore uint64 = 0 // スコアは整数
-	for i := range population.Genes {
-		strategyPtr := &population.Genes[i].Strategy // for 内でスライスの値を変更するためにポインタ取得
-		if strategyPtr.SumWeight > s.WeightLimit {
-			strategyPtr.Score = 0 // 積載超過していたら0点
-		} else {
-			strategyPtr.Score = strategyPtr.SumValue
+	for range model.MaxGeneration {
+		// 評価計算
+		var totalScore uint64 = 0 // スコアは整数
+		var maxScore uint64 = 0
+		for i := range population.Genes {
+			ng := &population.Genes[i]
+			ns := &ng.Strategy // for 内でスライスの値を変更するためにポインタ取得
+			ns.SumValue = 0.0
+			ns.SumWeight = 0.0
+			ns.Score = 0.0
+			for j := range s.Treasures {
+				if ns.ChooseIndex[j] {
+					ns.SumValue += s.Treasures[j].Value
+					ns.SumWeight += s.Treasures[j].Weight
+					// Score は計算しない
+				}
+			}
+			if ns.SumWeight > s.WeightLimit {
+				ns.Score = 0 // 積載超過していたら0点
+			} else {
+				ns.Score = ns.SumValue
+			}
+			totalScore += uint64(ns.Score)
+			if maxScore < uint64(ns.Score) {
+				maxScore = uint64(ns.Score)
+			}
 		}
-		totalScore += uint64(strategyPtr.Score)
+
+		fmt.Printf("Gen %d: max_score=%v\n", population.Generation, maxScore)
+		nextPopulation := Population{
+			Genes:      make([]Gene, 0),
+			Generation: population.Generation + 1,
+		}
+
+		for i := 0; i < len(s.Treasures)/2; i++ { // 選択・交叉の回数
+			// 選択
+			p1 := s.rouletteSelect(population, totalScore)
+			p2 := s.rouletteSelect(population, totalScore)
+			// TODO: 同じ親を選ばないようにする
+
+			// 交叉
+			c1, c2, _ := singlePointCrossover(
+				population.Genes[p1].Strategy.ChooseIndex,
+				population.Genes[p2].Strategy.ChooseIndex,
+			)
+
+			nextPopulation.Genes = append(nextPopulation.Genes, Gene{
+				Strategy: Strategy{
+					ChooseIndex: c1,
+				},
+			})
+			nextPopulation.Genes = append(nextPopulation.Genes, Gene{
+				Strategy: Strategy{
+					ChooseIndex: c2,
+				},
+			})
+
+		}
+
+		// 世代交代
+		population = nextPopulation
 	}
-	fmt.Printf("%+v\n", population)
-	fmt.Printf("total_score: %v\n", totalScore)
 
-	nextPopulation := Population{
-		Genes:      make([]Gene, 0),
-		Generation: population.Generation + 1,
-	}
-
-	for i := 0; i < len(s.Treasures)/2; i++ { // 選択・交叉の回数
-		// 選択
-		p1 := s.rouletteSelect(population, totalScore)
-		p2 := s.rouletteSelect(population, totalScore)
-		fmt.Println(p1, p2)
-		// TODO: 同じ親を選ばないようにする
-
-		// 交叉
-		c1, c2, _ := singlePointCrossover(
-			population.Genes[p1].Strategy.ChooseIndex,
-			population.Genes[p2].Strategy.ChooseIndex,
-		)
-
-		nextPopulation.Genes = append(nextPopulation.Genes, Gene{
-			Strategy: Strategy{
-				ChooseIndex: c1,
-			},
-		})
-		nextPopulation.Genes = append(nextPopulation.Genes, Gene{
-			Strategy: Strategy{
-				ChooseIndex: c2,
-			},
-		})
-
-	}
-
-	// 世代交代
 }
 
 func (s *Scenario) Start() {
