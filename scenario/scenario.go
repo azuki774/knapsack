@@ -209,7 +209,7 @@ func (s *Scenario) GA() {
 			Generation: population.Generation + 1,
 		}
 
-		for i := 0; i < len(s.Treasures)/2; i++ { // 選択・交叉の回数
+		for i := 0; i < model.PopulationSize/2; i++ { // 選択・交叉の回数
 			// 選択
 			p1 := s.rouletteSelect(population, totalScore)
 			p2 := s.rouletteSelect(population, totalScore)
