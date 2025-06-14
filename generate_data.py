@@ -21,7 +21,7 @@ def generate_knapsack_data(num_items, min_val, max_val, min_w, max_w):
     header = ["index", "value", "weight"]
     data = [header]
 
-    for i in range(1, num_items + 1):
+    for i in range(0, num_items):
         value = random.randint(min_val, max_val)
         weight = random.randint(min_w, max_w)
         data.append([i, value, weight])
