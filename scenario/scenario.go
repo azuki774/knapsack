@@ -163,7 +163,7 @@ func (s *Scenario) GA() {
 		for j := 0; j < len(s.Treasures); j++ {
 			// i 番目の Geme の設定
 			// j 番目の Treasure を取得するかどうか
-			b := rand.N(10) // 1/10
+			b := rand.N(2) // 1/2
 			if b == 0 {
 				ns.ChooseIndex[j] = true
 				// Score は計算しない
