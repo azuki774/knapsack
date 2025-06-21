@@ -220,27 +220,45 @@ func (s *Scenario) GA() {
 			}
 		}
 
-		fmt.Printf("Gen %d: max_score=%v\n", population.Generation, maxScore)
+		if population.Generation%model.ShowLogInterval == 0 {
+			fmt.Printf("Gen %d: max_score=%v\n", population.Generation, maxScore)
+		}
+
 		nextPopulation := Population{
 			Genes:      make([]Gene, 0),
 			Generation: population.Generation + 1,
 		}
 
+		// population の Genes をスコア高い順にソート
+		sort.SliceStable(population.Genes, func(i, j int) bool {
+			return population.Genes[i].Strategy.Score > population.Genes[j].Strategy.Score
+		})
+
 		for i := 0; i < model.PopulationSize/2; i++ { // 選択・交叉の回数
-			// 選択
-			p1 := s.rouletteSelect(population, totalScore)
-			p2 := s.rouletteSelect(population, totalScore)
-			// TODO: 同じ親を選ばないようにする
+			const elitePair = 1 // 実装の都合上、この変数の2倍の数がエリート個体として、次の世代にそのまま継がれる
+			var c1, c2 []bool
 
-			// 交叉
-			c1, c2, _ := singlePointCrossover(
-				population.Genes[p1].Strategy.ChooseIndex,
-				population.Genes[p2].Strategy.ChooseIndex,
-			)
+			if i < elitePair {
+				// エリート選定
+				c1 = population.Genes[i].Strategy.ChooseIndex
+				c2 = population.Genes[i+1].Strategy.ChooseIndex
+			} else {
+				// 通常の交叉
+				// 選択
+				p1 := s.rouletteSelect(population, totalScore)
+				p2 := s.rouletteSelect(population, totalScore)
+				// TODO: 同じ親を選ばないようにする
 
-			// 突然変異判定
-			c1 = mutate(c1, model.MutationRate)
-			c2 = mutate(c2, model.MutationRate)
+				// 交叉
+				c1, c2, _ = singlePointCrossover(
+					population.Genes[p1].Strategy.ChooseIndex,
+					population.Genes[p2].Strategy.ChooseIndex,
+				)
+
+				// 突然変異判定
+				c1 = mutate(c1, model.MutationRate)
+				c2 = mutate(c2, model.MutationRate)
+			}
 
 			nextPopulation.Genes = append(nextPopulation.Genes, Gene{
 				Strategy: Strategy{
