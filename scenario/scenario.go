@@ -154,6 +154,23 @@ func singlePointCrossover(p1, p2 []bool) (c1 []bool, c2 []bool, crossover int) {
 	return c1, c2, crossover
 }
 
+func mutate(p []bool, mutationRate float64) []bool {
+	// 新しい染色体用のスライスを作成（元の染色体を変更しないため）
+	mutatedChromosome := make([]bool, len(p))
+	copy(mutatedChromosome, p)
+
+	// 各遺伝子に対して突然変異のチェックを行う
+	for i := range mutatedChromosome {
+		// 0.0以上1.0未満の乱数を生成し、突然変異率より小さいか判定
+		if rand.Float64() < mutationRate {
+			// 突然変異を起こす（bool値を反転させる）
+			mutatedChromosome[i] = !mutatedChromosome[i]
+		}
+	}
+
+	return mutatedChromosome
+}
+
 func (s *Scenario) GA() {
 	var population Population
 	population.Generation = 1 // 第一世代
@@ -220,6 +237,10 @@ func (s *Scenario) GA() {
 				population.Genes[p1].Strategy.ChooseIndex,
 				population.Genes[p2].Strategy.ChooseIndex,
 			)
+
+			// 突然変異判定
+			c1 = mutate(c1, model.MutationRate)
+			c2 = mutate(c2, model.MutationRate)
 
 			nextPopulation.Genes = append(nextPopulation.Genes, Gene{
 				Strategy: Strategy{
